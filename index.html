@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistente de Briefing - CSI Montagens</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+    .chat-container { width: 100%; max-width: 650px; height: 90vh; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e1e6eb; }
+    .chat-header { background: #112233; color: #ffffff; padding: 16px 20px; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #ff6600; }
+    .chat-header span { font-size: 12px; color: #ff6600; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+    .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9fafb; }
+    .msg { max-width: 85%; padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+    .user { background: #112233; color: #ffffff; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .bot { background: #ffffff; color: #222222; border: 1px solid #e1e6eb; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .chat-input-area { display: flex; padding: 15px; background: #ffffff; border-top: 1px solid #e1e6eb; gap: 10px; }
+    input { flex: 1; padding: 12px 15px; border: 1px solid #cccccc; border-radius: 6px; font-size: 14px; outline: none; transition: border 0.2s; }
+    input:focus { border-color: #ff6600; }
+    button { background: #ff6600; color: #ffffff; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #e05500; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      CSI Montagens — Assistente de Briefing
+      <span>Comunicação Interna</span>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="chat-input-area">
+      <input type="text" id="userInput" placeholder="Digite sua resposta aqui..." onkeypress="handleKeyPress(event)" />
+      <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    // IMPORTANTE: Substitua com a URL pública onde você hospedou o seu backend no Render/Vercel
+    const BACKEND_URL = "https://seu-backend.onrender.com/api/chat";
+    let history = [];
+
+    window.onload = () => {
+      const initialGreeting = "🧡 Olá! Seja bem-vindo(a)! Para registrar sua solicitação de campanha para o setor de Marketing, por favor informe o título da campanha.";
+      appendMessage('bot', initialGreeting);
+      history.push({ role: 'assistant', content: initialGreeting });
+    };
+
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMessage('user', text);
+      history.push({ role: 'user', content: text });
+      input.value = '';
+      input.disabled = true;
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: history })
+        });
+        
+        const data = await res.json();
+        if (data.reply) {
+          appendMessage('bot', data.reply);
+          history.push({ role: 'assistant', content: data.reply });
+        } else {
+          appendMessage('bot', 'Ocorreu um erro ao processar sua resposta. Tente novamente.');
+        }
+      } catch (err) {
+        appendMessage('bot', 'Erro de conexão com o servidor de inteligência.');
+      } finally {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+
+    function appendMessage(sender, text) {
+      const box = document.getElementById('chatBox');
+      const div = document.createElement('div');
+      div.className = `msg ${sender}`;
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+  </script>
+</body>
+</html>
